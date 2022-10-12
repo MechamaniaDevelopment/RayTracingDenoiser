@@ -21,6 +21,8 @@ NRD_DECLARE_SAMPLERS
 NRD_DECLARE_INPUT_TEXTURES
 NRD_DECLARE_OUTPUT_TEXTURES
 
+#include "LCPD.hlsli"
+
 #define THREAD_GROUP_SIZE 8
 #define SKIRT 1
 
@@ -136,6 +138,21 @@ float3 getPreviousWorldPos(float2 clipSpaceXY, float depth)
     return depth * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y);
 }
 
+float3 getPreviousWorldPos_LCPD(int2 pixelPos, float depth)
+{
+    float2 uv = ((float2)pixelPos + float2(0.5, 0.5)) * (1.0 / gRectSizePrev) * 2.0 - 1.0;
+    uv = lcpdWarpApply(uv);
+
+    return depth * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * uv.x - gPrevFrustumUp.xyz * uv.y);
+}
+
+float3 getPreviousWorldPos_LCPD(float2 clipSpaceXY, float depth)
+{
+    clipSpaceXY = lcpdWarpApply(clipSpaceXY);
+    return depth * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y);
+}
+
+
 float isReprojectionTapValid(int2 pixelCoord, float currentLinearZ, float3 currentWorldPos, float3 previousWorldPos, float3 currentNormal, float3 previousNormal, float jitterRadius)
 {
     // Check whether reprojected pixel is inside of the screen
@@ -180,7 +197,10 @@ float loadSurfaceMotionBasedPrevData(
 
     // Calculating previous pixel position and UV
     float2 pixelUV = (pixelPosOnScreen + 0.5) * gInvRectSize;
-    prevUV = STL::Geometry::GetPrevUvFromMotion(pixelUV, currentWorldPos, gPrevWorldToClip, motionVector, gWorldSpaceMotion);
+    prevUV = gLCPD_enabled > 0 ? 
+        GetPrevUvFromMotion_LCPD(pixelUV, currentWorldPos, gPrevWorldToClip, motionVector, gWorldSpaceMotion) : 
+        STL::Geometry::GetPrevUvFromMotion(pixelUV, currentWorldPos, gPrevWorldToClip, motionVector, gWorldSpaceMotion);  
+
     float2 prevPixelPosOnScreen = prevUV * gRectSizePrev;
 
     // Consider reprojection to the same pixel index a small motion.
@@ -235,85 +255,85 @@ float loadSurfaceMotionBasedPrevData(
     // 1st row
     tapPos = bilinearOrigin + int2(0, -1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, -1.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(0.0, -1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, -1.0), prevViewZInTap);
+    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius); //prevWorldPosInTap
     bicubicFootprintValid *= reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(1, -1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, -1.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(1.0, -1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, -1.0), prevViewZInTap);
     reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     // 2nd row
     tapPos = bilinearOrigin + int2(-1, 0);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(-1.0, 0.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(1.0, 0.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(-1.0, 0.0), prevViewZInTap);
     reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(0, 0);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 0.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(0.0, 0.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 0.0), prevViewZInTap);
     prevWorldPos00 = prevWorldPosInTap;
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
     bilinearTapsValid.x = reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(1, 0);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 0.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(1.0, 0.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 0.0), prevViewZInTap);
     prevWorldPos10 = prevWorldPosInTap;
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
     bilinearTapsValid.y = reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(2, 0);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(2.0, 0.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(2.0, 0.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(2.0, 0.0), prevViewZInTap);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     // 3rd row
     tapPos = bilinearOrigin + int2(-1, 1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(-1.0, 1.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(-1.0, 1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(-1.0, 1.0), prevViewZInTap);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(0, 1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 1.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(0.0, 1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 1.0), prevViewZInTap);
     prevWorldPos01 = prevWorldPosInTap;
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
     bilinearTapsValid.z = reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(1, 1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 1.0), prevViewZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(1.0, 1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 1.0), prevViewZInTap);
     prevWorldPos11 = prevWorldPosInTap;
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
     bilinearTapsValid.w = reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(2, 1);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(2.0, 1.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(2.0, 1.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(2.0, 1.0), prevViewZInTap);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     // 4th row
     tapPos = bilinearOrigin + int2(0, 2);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 2.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(0.0, 2.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(0.0, 2.0), prevViewZInTap);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     tapPos = bilinearOrigin + int2(1, 2);
     prevViewZInTap = gPrevViewZ[tapPos];
-    prevWorldPosInTap = getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 2.0), prevViewZInTap);
-    reprojectionTapValid = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(prevClipSpaceXY + dXY * float2(1.0, 2.0), prevViewZInTap) : getPreviousWorldPos(prevClipSpaceXY + dXY * float2(1.0, 2.0), prevViewZInTap);
+    reprojectionTapValid =  isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormalFlat, jitterRadius);
     bicubicFootprintValid *= reprojectionTapValid;
 
     bilinearTapsValid = skipReprojectionTest ? float4(1.0, 1.0, 1.0, 1.0) : bilinearTapsValid;
@@ -428,6 +448,14 @@ float loadVirtualMotionBasedPrevData(
 
     float4 prevVirtualClipPos = mul(gPrevWorldToClip, float4(prevVirtualWorldPos, 1.0));
     prevVirtualClipPos.xy /= prevVirtualClipPos.w;
+
+    // LCPD
+    if (gLCPD_enabled > 0)
+    {
+        prevVirtualClipPos.xy = lcpdWarpRemove(prevVirtualClipPos.xy);
+    }
+
+
     prevUVVMB = prevVirtualClipPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
     float2 prevVirtualPixelPosOnScreen = prevUVVMB * gRectSizePrev;
 
@@ -460,15 +488,16 @@ float loadVirtualMotionBasedPrevData(
     prevNormal00 = prevNormalRoughness.rgb;
     prevRoughness00 = prevNormalRoughness.a;
     prevLinearZInTap = prevViewZs.x;
-    prevWorldPosInTap = getPreviousWorldPos(tapPos, prevLinearZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(tapPos, prevLinearZInTap) : getPreviousWorldPos(tapPos, prevLinearZInTap);
     bilinearTapsValid.x = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormal00, jitterRadius);
 
+    float mDelta = length(currentWorldPos - prevWorldPosInTap);
     tapPos = bilinearOrigin + int2(1, 0);
     prevNormalRoughness = UnpackPrevNormalRoughness(gPrevNormalRoughness[tapPos]);
     prevNormal10 = prevNormalRoughness.rgb;
     prevRoughness10 = prevNormalRoughness.a;
     prevLinearZInTap = prevViewZs.y;
-    prevWorldPosInTap = getPreviousWorldPos(tapPos, prevLinearZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(tapPos, prevLinearZInTap) : getPreviousWorldPos(tapPos, prevLinearZInTap);
     bilinearTapsValid.y = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormal10, jitterRadius);
 
     tapPos = bilinearOrigin + int2(0, 1);
@@ -476,7 +505,7 @@ float loadVirtualMotionBasedPrevData(
     prevNormal01 = prevNormalRoughness.rgb;
     prevRoughness01 = prevNormalRoughness.a;
     prevLinearZInTap = prevViewZs.z;
-    prevWorldPosInTap = getPreviousWorldPos(tapPos, prevLinearZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(tapPos, prevLinearZInTap) : getPreviousWorldPos(tapPos, prevLinearZInTap);
     bilinearTapsValid.z = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormal01, jitterRadius);
 
     tapPos = bilinearOrigin + int2(1, 1);
@@ -484,7 +513,7 @@ float loadVirtualMotionBasedPrevData(
     prevNormal11 = prevNormalRoughness.rgb;
     prevRoughness11 = prevNormalRoughness.a;
     prevLinearZInTap = prevViewZs.w;
-    prevWorldPosInTap = getPreviousWorldPos(tapPos, prevLinearZInTap);
+    prevWorldPosInTap = gLCPD_enabled > 0 ? getPreviousWorldPos_LCPD(tapPos, prevLinearZInTap) : getPreviousWorldPos(tapPos, prevLinearZInTap);
     bilinearTapsValid.w = isReprojectionTapValid(tapPos, currentLinearZ, currentWorldPos, prevWorldPosInTap, currentNormal, prevNormal11, jitterRadius);
 
     bilinearTapsValid = skipReprojectionTest ? float4(1.0, 1.0, 1.0, 1.0) : bilinearTapsValid;
@@ -691,7 +720,9 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId, uint3 groupThreadId
     float diffuse2ndMoment = diffuse1stMoment * diffuse1stMoment;
 
     // Getting current frame worldspace position and view vector for current pixel
-    float3 currentWorldPos = getCurrentWorldPos(ipos, currentLinearZ);
+    // LCPD: make sure that the world coordinate is in the right space. The motion vector will be added to this later on.
+    float3 currentWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(ipos, currentLinearZ, gInvRectSize, gFrustumForward, gFrustumUp, gFrustumRight) : getCurrentWorldPos(ipos, currentLinearZ);
+    float3 currentWorldPos_noLCPD = getCurrentWorldPos(ipos, currentLinearZ);
     float3 currentViewVector = currentWorldPos;
 
     // Reading motion vector
@@ -798,7 +829,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId, uint3 groupThreadId
     float specHistoryResponsiveFrames = min(specMaxFastAccumulatedFrameNum, historyLength.x);
 
     // Calculating surface parallax
-    float parallax = ComputeParallax(currentWorldPos, currentWorldPos + motionVector * (gWorldSpaceMotion != 0 ? 1.0 : 0.0), gPrevCameraPosition.xyz);
+    float parallax = ComputeParallax(currentWorldPos_noLCPD, currentWorldPos_noLCPD + motionVector * (gWorldSpaceMotion != 0 ? 1.0 : 0.0), gPrevCameraPosition.xyz);
     float parallaxOrig = parallax;
     float hitDistToSurfaceRatio = saturate(prevReflectionHitTSMB / currentLinearZ);
     parallax *= hitDistToSurfaceRatio;
@@ -889,12 +920,16 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId, uint3 groupThreadId
     // Amount of virtual motion - virtual motion correctness
     float3 R = reflect(-D.xyz, currentNormal);
     float3 Xvirtual = currentWorldPos - R * hitDistFocused * D.w;
-    float2 uvVirtualExpected = STL::Geometry::GetScreenUv(gWorldToClip, Xvirtual);
+
+    float2 uvVirtualExpected = gLCPD_enabled > 0 ? GetScreenUv_LCPD(gWorldToClip, Xvirtual) :
+                                STL::Geometry::GetScreenUv(gWorldToClip, Xvirtual);
 
     float4 Dvirtual = STL::ImportanceSampling::GetSpecularDominantDirection(prevNormalVMB, V, prevRoughnessVMB, RELAX_SPEC_DOMINANT_DIRECTION);
     float3 Rvirtual = reflect(-Dvirtual.xyz, prevNormalVMB);
     Xvirtual = currentWorldPos - Rvirtual * prevReflectionHitTVMB * Dvirtual.w;
-    float2 uvVirtualAtSample = STL::Geometry::GetScreenUv(gWorldToClip, Xvirtual); 
+
+    float2 uvVirtualAtSample = gLCPD_enabled > 0 ? GetScreenUv_LCPD(gWorldToClip, Xvirtual) :
+        STL::Geometry::GetScreenUv(gWorldToClip, Xvirtual);
 
     float thresholdMax = parallaxInPixels;
     float thresholdMin = thresholdMax * 0.05;

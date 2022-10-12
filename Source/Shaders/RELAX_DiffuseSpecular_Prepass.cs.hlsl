@@ -21,10 +21,36 @@ NRD_DECLARE_SAMPLERS
 NRD_DECLARE_INPUT_TEXTURES
 NRD_DECLARE_OUTPUT_TEXTURES
 
+#include "LCPD.hlsli"
+
 #define POISSON_SAMPLE_NUM                      8
 #define POISSON_SAMPLES                         g_Poisson8
 
 #define THREAD_GROUP_SIZE 8
+
+float2 GetKernelSampleCoordinates_LCPD( float4x4 mViewToClip, float3 offset, float3 Xv, float3 Tv, float3 Bv, float4 rotator = float4( 1, 0, 0, 1 ) )
+{
+#if( NRD_USE_QUADRATIC_DISTRIBUTION == 1 )
+    offset.xy *= offset.z;
+#endif
+
+    // We can't rotate T and B instead, because T is skewed
+    offset.xy = STL::Geometry::RotateVector( rotator, offset.xy );
+
+    float3 p = Xv + Tv * offset.x + Bv * offset.y;
+    float3 clip = STL::Geometry::ProjectiveTransform( mViewToClip, p ).xyw;
+    clip.xy /= clip.z; // TODO: clip.z can't be 0, but what if a point is behind the near plane?
+
+     // use lcpd remove constants
+    {
+        clip.xy = lcpdWarpRemove(clip.xy);
+    }
+
+    clip.y = -clip.y;
+    float2 uv = clip.xy * 0.5 + 0.5;
+
+    return uv;
+}
 
 float GetNormHitDist(float hitDist, float viewZ, float4 hitDistParams = float4(3.0, 0.1, 10.0, -25.0), float linearRoughness = 1.0)
 {
@@ -223,7 +249,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadID, uint3 groupThreadId
         return;
     }
 
-    float3 centerWorldPos = getCurrentWorldPos(ipos, centerViewZ);
+    float3 centerWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(ipos, centerViewZ) : getCurrentWorldPos(ipos, centerViewZ);
     float4 rotator = GetBlurKernelRotation(NRD_FRAME, ipos, gRotator, gFrameIndex);
 
     // Checkerboard resolve weights
@@ -269,7 +295,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadID, uint3 groupThreadId
             float3 offset = POISSON_SAMPLES[i];
 
             // Sample coordinates
-            float2 uv = GetKernelSampleCoordinates(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator);
+            float2 uv = gLCPD_enabled > 0 ? GetKernelSampleCoordinates_LCPD(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator) : GetKernelSampleCoordinates(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator);
 
             // Handle half res input in the checkerboard mode
             float2 checkerboardUv = uv;
@@ -286,7 +312,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadID, uint3 groupThreadId
             float4 sampleDiffuseIllumination = gDiffuseIllumination.SampleLevel(gNearestMirror, checkerboardUvScaled, 0);
             float sampleViewZ = abs(gViewZ.SampleLevel(gNearestMirror, uvScaled + gRectOffset, 0));
 
-            float3 sampleWorldPos = getCurrentWorldPos(uv, sampleViewZ);
+            float3 sampleWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(uv, sampleViewZ) : getCurrentWorldPos(uv, sampleViewZ);
 
             // Sample weight
             float sampleWeight = IsInScreen(uv);
@@ -349,7 +375,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadID, uint3 groupThreadId
             float3 offset = POISSON_SAMPLES[i];
 
             // Sample coordinates
-            float2 uv = GetKernelSampleCoordinates(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator);
+            float2 uv = gLCPD_enabled > 0 ? GetKernelSampleCoordinates_LCPD(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator) : GetKernelSampleCoordinates(gWorldToClip, offset, centerWorldPos, TvBv[0], TvBv[1], rotator);
 
             // Handle half res input in the checkerboard mode
             float2 checkerboardUv = uv;
@@ -369,7 +395,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadID, uint3 groupThreadId
             sampleSpecularIllumination.rgb = STL::Color::Compress(sampleSpecularIllumination.rgb, exposure);
             float sampleViewZ = abs(gViewZ.SampleLevel(gNearestMirror, uvScaled + gRectOffset, 0));
 
-            float3 sampleWorldPos = getCurrentWorldPos(uv, sampleViewZ);
+            float3 sampleWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(uv, sampleViewZ) : getCurrentWorldPos(uv, sampleViewZ);
 
             // Sample weight
             float sampleWeight = IsInScreen(uv);

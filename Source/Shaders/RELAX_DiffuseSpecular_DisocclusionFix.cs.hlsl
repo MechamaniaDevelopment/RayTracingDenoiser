@@ -21,6 +21,8 @@ NRD_DECLARE_SAMPLERS
 NRD_DECLARE_INPUT_TEXTURES
 NRD_DECLARE_OUTPUT_TEXTURES
 
+#include "LCPD.hlsli"
+
 // Helper functions
 float3 getCurrentWorldPos(int2 pixelPos, float depth)
 {
@@ -106,7 +108,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint3 dispatchThreadId : SV_DispatchThreadId)
     float4 centerNormalRoughness = NRD_FrontEnd_UnpackNormalAndRoughness(gNormalRoughness[ipos]);
     float3 centerNormal = centerNormalRoughness.rgb;
     float centerRoughness = centerNormalRoughness.a;
-    float3 centerWorldPos = getCurrentWorldPos(ipos, centerViewZ);
+    float3 centerWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(ipos, centerViewZ, gInvRectSize, gFrustumForward, gFrustumUp, gFrustumRight) : getCurrentWorldPos(ipos, centerViewZ);
     float3 centerV = normalize(centerWorldPos);
     float3 centerR = reflect(centerV, centerNormal);
     float2 normalWeightParams = getNormalWeightParams(centerRoughness, historyLength);
@@ -142,7 +144,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint3 dispatchThreadId : SV_DispatchThreadId)
         float diffuseW = getDiffuseNormalWeight(centerNormal, sampleNormal);
 
         // ..geometry
-        float3 sampleWorldPos = getCurrentWorldPos(samplePosInt, sampleViewZ);
+        float3 sampleWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(samplePosInt, sampleViewZ) : getCurrentWorldPos(samplePosInt, sampleViewZ);
         float geometryWeight = getGeometryWeight(centerWorldPos, centerNormal, sampleWorldPos, centerViewZ);
         float specularW = geometryWeight;
         diffuseW *= geometryWeight;

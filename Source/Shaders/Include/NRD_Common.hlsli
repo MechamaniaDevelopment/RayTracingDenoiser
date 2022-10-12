@@ -33,7 +33,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 #endif
 
 #ifndef NRD_USE_QUADRATIC_DISTRIBUTION
-    #define NRD_USE_QUADRATIC_DISTRIBUTION                      0 // bool
+    #define NRD_USE_QUADRATIC_DISTRIBUTION                      1 // bool
 #endif
 
 #ifndef NRD_BILATERAL_WEIGHT_VIEWZ_SENSITIVITY

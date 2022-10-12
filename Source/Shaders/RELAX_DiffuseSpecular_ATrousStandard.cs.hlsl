@@ -21,6 +21,9 @@ NRD_DECLARE_SAMPLERS
 NRD_DECLARE_INPUT_TEXTURES
 NRD_DECLARE_OUTPUT_TEXTURES
 
+#include "LCPD.hlsli"
+
+
 // Helper functions
 float3 getCurrentWorldPos(int2 pixelPos, float viewZ)
 {
@@ -81,7 +84,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
     float2 roughnessWeightParams = getRoughnessWeightParams(centerRoughness, specularReprojectionConfidence);
     float2 normalWeightParams = GetNormalWeightParams_ATrous(centerRoughness, 255.0 * gHistoryLength[ipos].y, specularReprojectionConfidence, gNormalEdgeStoppingRelaxation, gSpecularLobeAngleFraction);
 
-    float3 centerWorldPos = getCurrentWorldPos(ipos, centerViewZ);
+    float3 centerWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(ipos, centerViewZ) : getCurrentWorldPos(ipos, centerViewZ);
     float3 centerV = normalize(centerWorldPos);
 
     float specularPhiLIllumination = 1.0e-4 + gSpecularPhiLuminance * sqrt(max(0.0, centerSpecularVar));
@@ -110,8 +113,8 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
         [unroll]
         for (int xx = -1; xx <= 1; xx++)
         {
-            int2 p = ipos + offset + int2(xx, yy) * gStepSize;
-            bool isInside = all(p >= int2(0, 0)) && all(p < gResolution);
+            int2 pixelCoord = ipos + offset + int2(xx, yy) * gStepSize;
+            bool isInside = all(pixelCoord >= int2(0, 0)) && all(pixelCoord < gResolution);
             bool isCenter = ((xx == 0) && (yy == 0));
             if (isCenter) continue;
 
@@ -123,13 +126,13 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
 
             // Fetching normal, roughness, linear Z
             float sampleMaterialType;
-            float4 sampleNormalRoughnes = NRD_FrontEnd_UnpackNormalAndRoughness(gNormalRoughness[p], sampleMaterialType);
+            float4 sampleNormalRoughnes = NRD_FrontEnd_UnpackNormalAndRoughness(gNormalRoughness[pixelCoord], sampleMaterialType);
             float3 sampleNormal = sampleNormalRoughnes.rgb;
             float sampleRoughness = sampleNormalRoughnes.a;
-            float sampleViewZ = gViewZFP16[p] / NRD_FP16_VIEWZ_SCALE;
+            float sampleViewZ = gViewZFP16[pixelCoord] / NRD_FP16_VIEWZ_SCALE;
 
             // Calculating sample world position
-            float3 sampleWorldPos = getCurrentWorldPos(p, sampleViewZ);
+            float3 sampleWorldPos = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(pixelCoord, sampleViewZ) : getCurrentWorldPos(pixelCoord, sampleViewZ);
 
             // Calculating geometry weight for diffuse and specular
             float geometryW = exp_approx(-GetGeometryWeight(centerWorldPos, centerNormal, centerViewZ, sampleWorldPos, phiDepth));
@@ -152,7 +155,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
             // Summing up specular
             if (wSpecular > 1e-4)
             {
-                float4 sampleSpecularIlluminationAndVariance = gSpecularIlluminationAndVariance[p];
+                float4 sampleSpecularIlluminationAndVariance = gSpecularIlluminationAndVariance[pixelCoord];
                 float sampleSpecularLuminance = STL::Color::Luminance(sampleSpecularIlluminationAndVariance.rgb);
 
                 float specularLuminanceW = abs(centerSpecularLuminance - sampleSpecularLuminance) / specularPhiLIllumination;
@@ -168,7 +171,7 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
             // Summing up diffuse
             if (wDiffuse > 1e-4)
             {
-                float4 sampleDiffuseIlluminationAndVariance = gDiffuseIlluminationAndVariance[p];
+                float4 sampleDiffuseIlluminationAndVariance = gDiffuseIlluminationAndVariance[pixelCoord];
                 float sampleDiffuseLuminance = STL::Color::Luminance(sampleDiffuseIlluminationAndVariance.rgb);
 
                 float diffuseLuminanceW = abs(centerDiffuseLuminance - sampleDiffuseLuminance) / diffusePhiLIllumination;
@@ -180,7 +183,6 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId)
             }
         }
     }
-
     float4 filteredSpecularIlluminationAndVariance = float4(sumSpecularIlluminationAndVariance / float4(sumWSpecular.xxx, sumWSpecular * sumWSpecular));
     float4 filteredDiffuseIlluminationAndVariance = float4(sumDiffuseIlluminationAndVariance / float4(sumWDiffuse.xxx, sumWDiffuse * sumWDiffuse));
 

@@ -76,6 +76,23 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
         NRD_CONSTANT( uint, gUseConfidenceInputs ) \
         NRD_CONSTANT( float, gFramerateScale ) \
         NRD_CONSTANT( float, gRejectDiffuseHistoryNormalThreshold ) \
+        NRD_CONSTANT( uint, gLCPD_enabled ) \
+        NRD_CONSTANT( float, gApplyLCPD_b ) \
+        NRD_CONSTANT( float, gApplyLCPD_bb ) \
+        NRD_CONSTANT( float, gApplyLCPD_am2inv ) \
+        NRD_CONSTANT( float, gApplyLCPD_am4 ) \
+        NRD_CONSTANT( float, gApplyLCPD_A1 ) \
+        NRD_CONSTANT( float2, gApplyLCPD_B12 ) \
+        NRD_CONSTANT( float2, gApplyLCPD_VW ) \
+        NRD_CONSTANT( float, gApplyLCPD_R ) \
+        NRD_CONSTANT( float, gRemoveLCPD_b ) \
+        NRD_CONSTANT( float, gRemoveLCPD_bb ) \
+        NRD_CONSTANT( float, gRemoveLCPD_am2inv ) \
+        NRD_CONSTANT( float, gRemoveLCPD_am4 ) \
+        NRD_CONSTANT( float, gRemoveLCPD_A1 ) \
+        NRD_CONSTANT( float2, gRemoveLCPD_B12 ) \
+        NRD_CONSTANT( float2, gRemoveLCPD_VW ) \
+        NRD_CONSTANT( float, gRemoveLCPD_R ) \
     NRD_CONSTANTS_END
 
 #define NRD_DECLARE_SAMPLERS \

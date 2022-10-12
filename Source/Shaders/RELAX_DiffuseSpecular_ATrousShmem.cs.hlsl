@@ -24,6 +24,8 @@ NRD_DECLARE_SAMPLERS
 NRD_DECLARE_INPUT_TEXTURES
 NRD_DECLARE_OUTPUT_TEXTURES
 
+#include "LCPD.hlsli"
+
 groupshared float4 sharedDiffuseIlluminationAndVariance[THREAD_GROUP_SIZE + SKIRT * 2][THREAD_GROUP_SIZE + SKIRT * 2];
 groupshared float4 sharedSpecularIlluminationAndVariance[THREAD_GROUP_SIZE + SKIRT * 2][THREAD_GROUP_SIZE + SKIRT * 2];
 groupshared float4 sharedNormalRoughness[THREAD_GROUP_SIZE + SKIRT * 2][THREAD_GROUP_SIZE + SKIRT * 2];
@@ -122,7 +124,8 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId, uint3 groupThreadId
         normal = normalRoughness.rgb;
         roughness = normalRoughness.a;
         viewZ = gViewZFP16[int2(xx, yy)] / NRD_FP16_VIEWZ_SCALE;
-        worldPos = float4(getCurrentWorldPos(int2(xx,yy), viewZ), viewZ);
+        float3 worldP = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(int2(xx, yy), viewZ) : getCurrentWorldPos(int2(xx, yy), viewZ);
+        worldPos = float4(worldP, viewZ);
     }
     sharedSpecularIlluminationAndVariance[oy][ox] = specularIlluminationAndVariance;
     sharedDiffuseIlluminationAndVariance[oy][ox] = diffuseIlluminationAndVariance;
@@ -160,7 +163,9 @@ NRD_EXPORT void NRD_CS_MAIN(int2 ipos : SV_DispatchThreadId, uint3 groupThreadId
             normal = normalRoughness.rgb;
             roughness = normalRoughness.a;
             viewZ = gViewZFP16[int2(xx, yy)] / NRD_FP16_VIEWZ_SCALE;
-            worldPos = float4(getCurrentWorldPos(int2(xx, yy), viewZ), viewZ);
+
+            float3 worldP = gLCPD_enabled > 0 ? getCurrentWorldPos_LCPD(int2(xx, yy), viewZ) : getCurrentWorldPos(int2(xx, yy), viewZ);
+            worldPos = float4(worldP, viewZ);
         }
         sharedSpecularIlluminationAndVariance[oy][ox] = specularIlluminationAndVariance;
         sharedDiffuseIlluminationAndVariance[oy][ox] = diffuseIlluminationAndVariance;

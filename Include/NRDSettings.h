@@ -399,6 +399,69 @@ namespace nrd
 
         // Firefly suppression
         bool enableAntiFirefly = false;
+
+		// LCPD b
+		float removeLCPD_b = 0.0f;
+
+		// LCPD bb
+		float removeLCPD_bb = 0.0f;
+
+		// LCPD am2inv
+		float removeLCPD_am2inv = 0.0f;
+
+		// LCPD am4
+		float removeLCPD_am4 = 0.0f;
+
+		// LCPD A1
+		float removeLCPD_A1 = 0.0f;
+
+		// LCPD B1
+		float removeLCPD_B1 = 0.0f;
+
+		// LCPD B2
+		float removeLCPD_B2 = 0.0f;
+
+		// LCPD V
+		float removeLCPD_V = 0.0f;
+
+		// LCPD W
+		float removeLCPD_W = 0.0f;
+
+		// LCPD R
+		float removeLCPD_R = 0.0f;
+
+		// LCPD b
+		float applyLCPD_b = 0.0f;
+
+		// LCPD bb
+		float applyLCPD_bb = 0.0f;
+
+		// LCPD am2inv
+		float applyLCPD_am2inv = 0.0f;
+
+		// LCPD am4
+		float applyLCPD_am4 = 0.0f;
+
+		// LCPD A1
+		float applyLCPD_A1 = 0.0f;
+
+		// LCPD B1
+		float applyLCPD_B1 = 0.0f;
+
+		// LCPD B2
+		float applyLCPD_B2 = 0.0f;
+
+		// LCPD V
+		float applyLCPD_V = 0.0f;
+
+		// LCPD W
+		float applyLCPD_W = 0.0f;
+
+		// LCPD R
+		float applyLCPD_R = 0.0f;
+
+		// LCPD enabled
+		bool LCPD_enabled = true;
     };
 
     // RELAX_DIFFUSE
