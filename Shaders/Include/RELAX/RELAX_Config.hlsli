@@ -50,7 +50,28 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float, gJitterDelta ) \
     NRD_CONSTANT( uint, gDiffMaterialMask ) \
     NRD_CONSTANT( uint, gSpecMaterialMask ) \
-    NRD_CONSTANT( uint, gUseWorldPrevToWorld )
+    NRD_CONSTANT( uint, gUseWorldPrevToWorld ) \
+    \
+    NRD_CONSTANT(uint, gEnablePDW) \
+    NRD_CONSTANT(float, gApplyPDW_b) \
+    NRD_CONSTANT(float, gApplyPDW_bb) \
+    NRD_CONSTANT(float, gApplyPDW_am2inv) \
+    NRD_CONSTANT(float, gApplyPDW_am4) \
+    NRD_CONSTANT(float, gApplyPDW_A1) \
+    NRD_CONSTANT(float2, gApplyPDW_B12) \
+    NRD_CONSTANT(float2, gApplyPDW_VW) \
+    NRD_CONSTANT(float, gApplyPDW_R) \
+    NRD_CONSTANT(float, gRemovePDW_b) \
+    NRD_CONSTANT(float, gRemovePDW_bb) \
+    NRD_CONSTANT(float, gRemovePDW_am2inv) \
+    NRD_CONSTANT(float, gRemovePDW_am4) \
+    NRD_CONSTANT(float, gRemovePDW_A1) \
+    NRD_CONSTANT(float2, gRemovePDW_B12) \
+    NRD_CONSTANT(float2, gRemovePDW_VW) \
+    NRD_CONSTANT(float, gRemovePDW_R) \
+    NRD_CONSTANT(float, gPad0) \
+    NRD_CONSTANT(float, gPad1) \
+    NRD_CONSTANT(float, gPad2) \
 
 #if( !defined RELAX_DIFFUSE && !defined RELAX_SPECULAR )
     #define RELAX_DIFFUSE

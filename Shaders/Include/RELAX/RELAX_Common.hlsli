@@ -8,6 +8,8 @@ distribution of this software and related documentation without an express
 license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 
+#include "../PDW.hlsli"
+
 float4 UnpackPrevNormalRoughness(float4 packedData)
 {
     float4 result;
@@ -58,36 +60,32 @@ float4 BilinearWithBinaryWeightsImmediateFloat4(float4 s00, float4 s10, float4 s
     return r;
 }
 
+float3 GetCurrentWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
+{
+    if (gEnablePDW != 0)
+        clipSpaceXY = pdwApply(clipSpaceXY);
+
+    return viewZ * (gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y);
+}
+
 float3 GetCurrentWorldPosFromPixelPos(int2 pixelPos, float viewZ)
 {
     float2 clipSpaceXY = ((float2)pixelPos + float2(0.5, 0.5)) * gInvRectSize * 2.0 - 1.0;
-
-    return (gOrthoMode == 0) ?
-        viewZ * (gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y) :
-        viewZ * gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y;
+    return GetCurrentWorldPosFromClipSpaceXY(clipSpaceXY, viewZ);
 }
 
-float3 GetCurrentWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
+float3 GetPreviousWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
 {
-    return (gOrthoMode == 0) ?
-        viewZ * (gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y) :
-        viewZ * gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y;
+    if (gEnablePDW != 0)
+        clipSpaceXY = pdwApply(clipSpaceXY);
+
+    return viewZ * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y);
 }
 
 float3 GetPreviousWorldPosFromPixelPos(int2 pixelPos, float viewZ)
 {
     float2 clipSpaceXY = ((float2)pixelPos + float2(0.5, 0.5)) * (1.0 / gRectSizePrev) * 2.0 - 1.0;
-
-    return (gOrthoMode == 0) ?
-        viewZ * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y) :
-        viewZ * gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y;
-}
-
-float3 GetPreviousWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
-{
-    return (gOrthoMode == 0) ?
-        viewZ * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y) :
-        viewZ * gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y;
+    return GetPreviousWorldPosFromClipSpaceXY(clipSpaceXY, viewZ);
 }
 
 float GetPlaneDistanceWeight(float3 centerWorldPos, float3 centerNormal, float centerViewZ, float3 sampleWorldPos, float threshold)

@@ -37,7 +37,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 // DEFAULT SETTINGS ( can be modified )
 //==================================================================================================================
 
-#define NRD_USE_QUADRATIC_DISTRIBUTION                          0 // bool
+#define NRD_USE_QUADRATIC_DISTRIBUTION                          1 // bool
 #define NRD_USE_EXPONENTIAL_WEIGHTS                             0 // bool
 #define NRD_BILATERAL_WEIGHT_CUTOFF                             0.03
 #define NRD_CATROM_SHARPNESS                                    0.5 // [ 0; 1 ], 0.5 matches Catmull-Rom

@@ -354,6 +354,31 @@ namespace nrd
         // Firefly suppression
         bool enableAntiFirefly = false;
 
+        // PDW Constants, precomputed from S, T, and U parameters.
+        float removePDW_b = 0.0f;
+        float removePDW_bb = 0.0f;
+        float removePDW_am2inv = 0.0f;
+        float removePDW_am4 = 0.0f;
+        float removePDW_A1 = 0.0f;
+        float removePDW_B1 = 0.0f;
+        float removePDW_B2 = 0.0f;
+        float removePDW_V = 0.0f;
+        float removePDW_W = 0.0f;
+        float removePDW_R = 0.0f;
+
+        float applyPDW_b = 0.0f;
+        float applyPDW_bb = 0.0f;
+        float applyPDW_am2inv = 0.0f;
+        float applyPDW_am4 = 0.0f;
+        float applyPDW_A1 = 0.0f;
+        float applyPDW_B1 = 0.0f;
+        float applyPDW_B2 = 0.0f;
+        float applyPDW_V = 0.0f;
+        float applyPDW_W = 0.0f;
+        float applyPDW_R = 0.0f;
+
+        bool enablePDW = true;
+
         // Skip reprojection test when there is no motion, might improve quality along the edges for static camera with a jitter
         bool enableReprojectionTestSkippingWithoutMotion = false;
 

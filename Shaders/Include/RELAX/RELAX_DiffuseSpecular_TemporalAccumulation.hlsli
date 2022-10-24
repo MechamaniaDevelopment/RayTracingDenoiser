@@ -283,6 +283,13 @@ float loadVirtualMotionBasedPrevData(
 
     float4 prevVirtualClipPos = mul(gPrevWorldToClip, float4(prevVirtualWorldPos, 1.0));
     prevVirtualClipPos.xy /= prevVirtualClipPos.w;
+
+    // PDW
+    if (gEnablePDW != 0)
+    {
+        prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy);
+    }
+
     prevUVVMB = prevVirtualClipPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
 
     // If the focused HitT puts the UV for virtual motion based specular
@@ -297,6 +304,13 @@ float loadVirtualMotionBasedPrevData(
         accumulatedSpecularVMBZ = currentViewVectorLength + hitDistOriginal;
         prevVirtualClipPos = mul(gPrevWorldToClip, float4(prevVirtualWorldPos, 1.0));
         prevVirtualClipPos.xy /= prevVirtualClipPos.w;
+
+        // PDW
+        if (gEnablePDW != 0)
+        {
+            prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy);
+        }
+
         prevUVVMB = prevVirtualClipPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
     }
 
@@ -458,7 +472,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
     float3 currentWorldPos = GetCurrentWorldPosFromPixelPos(pixelPos, currentLinearZ);
     float3 prevWorldPos = currentWorldPos + motionVector * float(gIsWorldSpaceMotionEnabled != 0);
     float2 pixelUv = float2(pixelPos + 0.5) * gInvRectSize;
-    float2 prevUVSMB = STL::Geometry::GetPrevUvFromMotion(pixelUv, currentWorldPos, gPrevWorldToClip, motionVector, gIsWorldSpaceMotionEnabled);
+    float2 prevUVSMB = GetPrevUvFromMotion_PDW(pixelUv, currentWorldPos, gPrevWorldToClip, motionVector, gIsWorldSpaceMotionEnabled);
 
     float3 currentViewVector = (gOrthoMode == 0) ?
         currentWorldPos :
@@ -542,7 +556,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
     // Calculating curvature along the direction of motion
 #ifdef RELAX_SPECULAR
     float curvature = 0;
-    float2 motionUv = STL::Geometry::GetScreenUv(gWorldToClip, prevWorldPos - gPrevCameraPosition.xyz, false);
+    float2 motionUv = GetScreenUv_PDW(gWorldToClip, prevWorldPos - gPrevCameraPosition.xyz, false);
     float2 cameraMotion2d = ( pixelUv - motionUv ) * gRectSize;
     cameraMotion2d /= max( length( cameraMotion2d ), 1.0 / ( 1.0 + gSpecularMaxAccumulatedFrameNum ) );
     cameraMotion2d *= 0.5 * gInvRectSize;
@@ -695,7 +709,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
     float specHistoryResponsiveFrames = min(specMaxFastAccumulatedFrameNum, specHistoryLength);
 
     // Calculating surface parallax
-    float parallax = ComputeParallax(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode);
+    float parallax = ComputeParallax_PDW(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode);
     float parallaxOrig = parallax;
     float hitDistToSurfaceRatio = saturate(prevReflectionHitTSMB / currentLinearZ);
     parallax *= hitDistToSurfaceRatio;
