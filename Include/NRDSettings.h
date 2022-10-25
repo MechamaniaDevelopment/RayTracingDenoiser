@@ -379,6 +379,31 @@ namespace nrd
 
         bool enablePDW = true;
 
+        // PDW Constants, previous frame
+        float prevRemovePDW_b = 0.0f;
+        float prevRemovePDW_bb = 0.0f;
+        float prevRemovePDW_am2inv = 0.0f;
+        float prevRemovePDW_am4 = 0.0f;
+        float prevRemovePDW_A1 = 0.0f;
+        float prevRemovePDW_B1 = 0.0f;
+        float prevRemovePDW_B2 = 0.0f;
+        float prevRemovePDW_V = 0.0f;
+        float prevRemovePDW_W = 0.0f;
+        float prevRemovePDW_R = 0.0f;
+
+        float prevApplyPDW_b = 0.0f;
+        float prevApplyPDW_bb = 0.0f;
+        float prevApplyPDW_am2inv = 0.0f;
+        float prevApplyPDW_am4 = 0.0f;
+        float prevApplyPDW_A1 = 0.0f;
+        float prevApplyPDW_B1 = 0.0f;
+        float prevApplyPDW_B2 = 0.0f;
+        float prevApplyPDW_V = 0.0f;
+        float prevApplyPDW_W = 0.0f;
+        float prevApplyPDW_R = 0.0f;
+
+        bool prevEnablePDW = true;
+
         // Skip reprojection test when there is no motion, might improve quality along the edges for static camera with a jitter
         bool enableReprojectionTestSkippingWithoutMotion = false;
 

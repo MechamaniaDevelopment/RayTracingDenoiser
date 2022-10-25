@@ -9,7 +9,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 constexpr uint32_t RELAX_MAX_ATROUS_PASS_NUM = 8;
 
-#define RELAX_SET_SHARED_CONSTANTS SetSharedConstants(5, 7, 8, 12 + 24)
+#define RELAX_SET_SHARED_CONSTANTS SetSharedConstants(5, 7, 8, 12 + 48)
 
 inline ml::float3 RELAX_GetFrustumForward(const ml::float4x4& viewToWorld, const ml::float4& frustum)
 {
@@ -133,10 +133,40 @@ void nrd::DenoiserImpl::AddSharedConstants_Relax(const MethodData& methodData, C
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_W);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_R);
 
-    // PDW adds 21, add 3 to align it to 24 (6x 4-alignment)
+    // PDW Current Frame adds 21, align to 24
     AddFloat(data, 0.0f); // Pad0
     AddFloat(data, 0.0f); // Pad1
     AddFloat(data, 0.0f); // Pad2
+
+    // PDW Prev Frame
+    AddUint(data, methodData.settings.diffuseSpecularRelax.prevEnablePDW);
+
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_b);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_bb);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_am2inv);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_am4);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_A1);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_B1);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_B2);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_V);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_W);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_R);
+
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_b);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_bb);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_am2inv);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_am4);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_A1);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_B1);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_B2);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_V);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_W);
+    AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_R);
+
+    // PDW previous frame adds 21, align to 24
+    AddFloat(data, 0.0f); // Pad3
+    AddFloat(data, 0.0f); // Pad4
+    AddFloat(data, 0.0f); // Pad5
 }
 
 void nrd::DenoiserImpl::AddMethod_RelaxDiffuse(nrd::MethodData& methodData)

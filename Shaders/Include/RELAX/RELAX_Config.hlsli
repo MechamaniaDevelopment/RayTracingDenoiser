@@ -69,9 +69,32 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT(float2, gRemovePDW_B12) \
     NRD_CONSTANT(float2, gRemovePDW_VW) \
     NRD_CONSTANT(float, gRemovePDW_R) \
+    \
     NRD_CONSTANT(float, gPad0) \
     NRD_CONSTANT(float, gPad1) \
     NRD_CONSTANT(float, gPad2) \
+    \
+    NRD_CONSTANT(uint, gPrevEnablePDW) \
+    NRD_CONSTANT(float, gPrevApplyPDW_b) \
+    NRD_CONSTANT(float, gPrevApplyPDW_bb) \
+    NRD_CONSTANT(float, gPrevApplyPDW_am2inv) \
+    NRD_CONSTANT(float, gPrevApplyPDW_am4) \
+    NRD_CONSTANT(float, gPrevApplyPDW_A1) \
+    NRD_CONSTANT(float2, gPrevApplyPDW_B12) \
+    NRD_CONSTANT(float2, gPrevApplyPDW_VW) \
+    NRD_CONSTANT(float, gPrevApplyPDW_R) \
+    NRD_CONSTANT(float, gPrevRemovePDW_b) \
+    NRD_CONSTANT(float, gPrevRemovePDW_bb) \
+    NRD_CONSTANT(float, gPrevRemovePDW_am2inv) \
+    NRD_CONSTANT(float, gPrevRemovePDW_am4) \
+    NRD_CONSTANT(float, gPrevRemovePDW_A1) \
+    NRD_CONSTANT(float2, gPrevRemovePDW_B12) \
+    NRD_CONSTANT(float2, gPrevRemovePDW_VW) \
+    NRD_CONSTANT(float, gPrevRemovePDW_R) \
+    \
+    NRD_CONSTANT(float, gPad3) \
+    NRD_CONSTANT(float, gPad4) \
+    NRD_CONSTANT(float, gPad5) \
 
 #if( !defined RELAX_DIFFUSE && !defined RELAX_SPECULAR )
     #define RELAX_DIFFUSE

@@ -285,9 +285,9 @@ float loadVirtualMotionBasedPrevData(
     prevVirtualClipPos.xy /= prevVirtualClipPos.w;
 
     // PDW
-    if (gEnablePDW != 0)
+    if (gPrevEnablePDW != 0)
     {
-        prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy);
+        prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy, true);
     }
 
     prevUVVMB = prevVirtualClipPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
@@ -306,9 +306,9 @@ float loadVirtualMotionBasedPrevData(
         prevVirtualClipPos.xy /= prevVirtualClipPos.w;
 
         // PDW
-        if (gEnablePDW != 0)
+        if (gPrevEnablePDW != 0)
         {
-            prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy);
+            prevVirtualClipPos.xy = pdwRemove(prevVirtualClipPos.xy, true);
         }
 
         prevUVVMB = prevVirtualClipPos.xy * float2(0.5, -0.5) + float2(0.5, 0.5);
@@ -709,7 +709,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
     float specHistoryResponsiveFrames = min(specMaxFastAccumulatedFrameNum, specHistoryLength);
 
     // Calculating surface parallax
-    float parallax = ComputeParallax_PDW(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode);
+    float parallax = ComputeParallax_PDW(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode, true);
     float parallaxOrig = parallax;
     float hitDistToSurfaceRatio = saturate(prevReflectionHitTSMB / currentLinearZ);
     parallax *= hitDistToSurfaceRatio;

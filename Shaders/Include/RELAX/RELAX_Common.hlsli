@@ -63,7 +63,7 @@ float4 BilinearWithBinaryWeightsImmediateFloat4(float4 s00, float4 s10, float4 s
 float3 GetCurrentWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
 {
     if (gEnablePDW != 0)
-        clipSpaceXY = pdwApply(clipSpaceXY);
+        clipSpaceXY = pdwApply(clipSpaceXY, false);
 
     return viewZ * (gFrustumForward.xyz + gFrustumRight.xyz * clipSpaceXY.x - gFrustumUp.xyz * clipSpaceXY.y);
 }
@@ -77,7 +77,7 @@ float3 GetCurrentWorldPosFromPixelPos(int2 pixelPos, float viewZ)
 float3 GetPreviousWorldPosFromClipSpaceXY(float2 clipSpaceXY, float viewZ)
 {
     if (gEnablePDW != 0)
-        clipSpaceXY = pdwApply(clipSpaceXY);
+        clipSpaceXY = pdwApply(clipSpaceXY, true);
 
     return viewZ * (gPrevFrustumForward.xyz + gPrevFrustumRight.xyz * clipSpaceXY.x - gPrevFrustumUp.xyz * clipSpaceXY.y);
 }
