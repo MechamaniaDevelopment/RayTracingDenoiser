@@ -474,7 +474,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
     if( gIsWorldSpaceMotionEnabled )
     {
         prevWorldPos += mv;
-        prevUVSMB = GetScreenUv_PDW(gPrevWorldToClip, prevWorldPos);
+        prevUVSMB = GetScreenUv_PDW(gPrevWorldToClip, prevWorldPos, true);
     }
     else if( gMvScale.z != 0.0 )
         prevWorldPos = GetPreviousWorldPosFromClipSpaceXY(prevUVSMB * 2.0 - 1.0, currentLinearZ + mv.z) + gPrevCameraPosition.xyz;
@@ -559,7 +559,7 @@ NRD_EXPORT void NRD_CS_MAIN(uint2 pixelPos : SV_DispatchThreadId, uint2 threadPo
 #endif
 
     // Calculating surface parallax
-    float parallax = ComputeParallax_PDW(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode);
+    float parallax = ComputeParallax_PDW(prevWorldPos - gPrevCameraPosition.xyz, gOrthoMode == 0.0 ? pixelUv : prevUVSMB, gWorldToClip, gRectSize, gUnproject, gOrthoMode, false);
     float parallaxOrig = parallax;
     float parallaxInPixels = GetParallaxInPixels(parallaxOrig, gUnproject);
 
