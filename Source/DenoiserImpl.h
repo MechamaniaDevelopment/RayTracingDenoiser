@@ -28,24 +28,24 @@ typedef nrd::MemoryAllocatorInterface MemoryAllocatorInterface;
 
 #ifdef NRD_USE_PRECOMPILED_SHADERS
     #if !NRD_ONLY_SPIRV_SHADERS_AVAILABLE
-        #define AddDispatch(shaderName, constantNum, workgroupDim, downsampleFactor) \
-            AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, 1, #shaderName ".cs", {g_##shaderName##_cs_dxbc, GetCountOf(g_##shaderName##_cs_dxbc)}, {g_##shaderName##_cs_dxil, GetCountOf(g_## shaderName##_cs_dxil)}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
+        #define AddDispatch(shaderName, constantNum, numThreads, downsampleFactor) \
+            AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, 1, #shaderName ".cs", {g_##shaderName##_cs_dxbc, GetCountOf(g_##shaderName##_cs_dxbc)}, {g_##shaderName##_cs_dxil, GetCountOf(g_## shaderName##_cs_dxil)}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
 
-        #define AddDispatchRepeated(shaderName, constantNum, workgroupDim, downsampleFactor, repeatNum) \
-            AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {g_##shaderName##_cs_dxbc, GetCountOf(g_##shaderName##_cs_dxbc)}, {g_##shaderName##_cs_dxil, GetCountOf(g_##shaderName##_cs_dxil)}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
+        #define AddDispatchRepeated(shaderName, constantNum, numThreads, downsampleFactor, repeatNum) \
+            AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {g_##shaderName##_cs_dxbc, GetCountOf(g_##shaderName##_cs_dxbc)}, {g_##shaderName##_cs_dxil, GetCountOf(g_##shaderName##_cs_dxil)}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
     #else
-        #define AddDispatch(shaderName, constantNum, workgroupDim, downsampleFactor) \
-            AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, 1, #shaderName ".cs", {}, {}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
+        #define AddDispatch(shaderName, constantNum, numThreads, downsampleFactor) \
+            AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, 1, #shaderName ".cs", {}, {}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
 
-        #define AddDispatchRepeated(shaderName, constantNum, workgroupDim, downsampleFactor, repeatNum) \
-            AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {}, {}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
+        #define AddDispatchRepeated(shaderName, constantNum, numThreads, downsampleFactor, repeatNum) \
+            AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {}, {}, {g_##shaderName##_cs_spirv, GetCountOf(g_##shaderName##_cs_spirv)})
     #endif
 #else
-    #define AddDispatch(shaderName, constantNum, workgroupDim, downsampleFactor) \
-        AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, 1, #shaderName ".cs", {}, {}, {})
+    #define AddDispatch(shaderName, constantNum, numThreads, downsampleFactor) \
+        AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, 1, #shaderName ".cs", {}, {}, {})
 
-    #define AddDispatchRepeated(shaderName, constantNum, workgroupDim, downsampleFactor, repeatNum) \
-        AddComputeDispatchDesc(workgroupDim, workgroupDim, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {}, {}, {})
+    #define AddDispatchRepeated(shaderName, constantNum, numThreads, downsampleFactor, repeatNum) \
+        AddComputeDispatchDesc(numThreads, downsampleFactor, constantNum, repeatNum, #shaderName ".cs", {}, {}, {})
 #endif
 
 #define PushPass(passName) _PushPass(NRD_STRINGIFY(METHOD_NAME) " - " passName)
@@ -64,7 +64,9 @@ namespace nrd
     constexpr uint32_t PERMANENT_POOL_START = 1000;
     constexpr uint32_t TRANSIENT_POOL_START = 2000;
     constexpr size_t CONSTANT_DATA_SIZE = 2 * 1024 * 2014;
+    
     constexpr uint16_t USE_MAX_DIMS = 0xFFFF;
+    constexpr uint16_t IGNORE_RS = 0xFFFE;
 
     inline uint16_t DivideUp(uint32_t x, uint16_t y)
     { return uint16_t((x + y - 1) / y); }
@@ -108,6 +110,18 @@ namespace nrd
         uint16_t indexInPoolToSwapWith;
     };
 
+    struct NumThreads
+    {
+        inline NumThreads(uint8_t w, uint8_t h) : width(w), height(h)
+        {}
+
+        inline NumThreads() : width(0), height(0)
+        {}
+
+        uint8_t width;
+        uint8_t height;
+    };
+
     struct InternalDispatchDesc
     {
         const char* name;
@@ -118,8 +132,15 @@ namespace nrd
         uint16_t pipelineIndex;
         uint16_t downsampleFactor;
         uint16_t maxRepeatNum; // mostly for internal use
-        uint8_t workgroupDimX;
-        uint8_t workgroupDimY;
+        NumThreads numThreads;
+    };
+
+    struct ClearResource
+    {
+        Resource resource;
+        uint32_t w;
+        uint32_t h;
+        bool isInteger;
     };
 
     class DenoiserImpl
@@ -160,7 +181,7 @@ namespace nrd
         void UpdateMethod_RelaxSpecular(const MethodData& methodData);
         void UpdateMethod_RelaxDiffuseSpecular(const MethodData& methodData);
 
-        void AddSharedConstants_Relax(const MethodData& methodData, Constant*& data, nrd::Method method);
+        void AddSharedConstants_Relax(const MethodData& methodData, Constant*& data, Method method);
 
         // Other
         void AddMethod_Reference(MethodData& methodData);
@@ -180,7 +201,7 @@ namespace nrd
             m_PermanentPool(GetStdAllocator()),
             m_TransientPool(GetStdAllocator()),
             m_Resources(GetStdAllocator()),
-            m_UniqueStorageResources(GetStdAllocator()),
+            m_ClearResources(GetStdAllocator()),
             m_PingPongs(GetStdAllocator()),
             m_DescriptorRanges(GetStdAllocator()),
             m_Pipelines(GetStdAllocator()),
@@ -192,7 +213,7 @@ namespace nrd
             m_PermanentPool.reserve(32);
             m_TransientPool.reserve(32);
             m_Resources.reserve(128);
-            m_UniqueStorageResources.reserve(32);
+            m_ClearResources.reserve(32);
             m_PingPongs.reserve(32);
             m_DescriptorRanges.reserve(64);
             m_Pipelines.reserve(32);
@@ -216,8 +237,7 @@ namespace nrd
     private:
         void AddComputeDispatchDesc
         (
-            uint8_t workgroupDimX,
-            uint8_t workgroupDimY,
+            NumThreads numThreads,
             uint16_t downsampleFactor,
             uint32_t constantBufferDataSize,
             uint32_t maxRepeatNum,
@@ -231,26 +251,29 @@ namespace nrd
         void PrepareDesc();
         void UpdatePingPong(const MethodData& methodData);
         void UpdateCommonSettings(const CommonSettings& commonSettings);
-        void PushTexture(DescriptorType descriptorType, uint16_t index, uint16_t mipOffset, uint16_t mipNum, uint16_t indexToSwapWith = uint16_t(-1));
+        void PushTexture(DescriptorType descriptorType, uint16_t indexInPool, uint16_t mipOffset, uint16_t mipNum, uint16_t indexToSwapWith = uint16_t(-1));
 
     // Available in methods
     private:
         constexpr void SetSharedConstants(uint32_t num4x4, uint32_t num4, uint32_t num2, uint32_t num1)
-        { m_SharedConstantNum = 16 * num4x4 + 4 * num4 + 2 * num2 + 1 * num1; }
+        {
+            m_SharedConstantNum = 16 * num4x4 + 4 * num4 + 2 * num2 + 1 * num1;
+            assert( m_SharedConstantNum % 4 == 0 );
+        }
 
         constexpr uint32_t SumConstants(uint32_t num4x4, uint32_t num4, uint32_t num2, uint32_t num1, bool addShared = true)
         { return ( 16 * num4x4 + 4 * num4 + 2 * num2 + 1 * num1 + ( addShared ? m_SharedConstantNum : 0 ) ) * sizeof(uint32_t); }
 
-        inline void PushInput(uint16_t index, uint16_t mipOffset = 0, uint16_t mipNum = 1, uint16_t indexToSwapWith = uint16_t(-1))
-        { PushTexture(DescriptorType::TEXTURE, index, mipOffset, mipNum, indexToSwapWith); }
+        inline void PushInput(uint16_t indexInPool, uint16_t mipOffset = 0, uint16_t mipNum = 1, uint16_t indexToSwapWith = uint16_t(-1))
+        { PushTexture(DescriptorType::TEXTURE, indexInPool, mipOffset, mipNum, indexToSwapWith); }
 
-        void PushOutput(uint16_t index, uint16_t mipOffset = 0, uint16_t mipNum = 1, uint16_t indexToSwapWith = uint16_t(-1))
-        { PushTexture(DescriptorType::STORAGE_TEXTURE, index, mipOffset, mipNum, indexToSwapWith); }
+        void PushOutput(uint16_t indexInPool, uint16_t mipOffset = 0, uint16_t mipNum = 1, uint16_t indexToSwapWith = uint16_t(-1))
+        { PushTexture(DescriptorType::STORAGE_TEXTURE, indexInPool, mipOffset, mipNum, indexToSwapWith); }
 
         inline Constant* PushDispatch(const MethodData& methodData, uint32_t localIndex)
         {
-            size_t index = methodData.dispatchOffset + localIndex;
-            const InternalDispatchDesc& internalDispatchDesc = m_Dispatches[index];
+            size_t dispatchIndex = methodData.dispatchOffset + localIndex;
+            const InternalDispatchDesc& internalDispatchDesc = m_Dispatches[dispatchIndex];
 
             // Copy data
             DispatchDesc dispatchDesc = {};
@@ -271,11 +294,18 @@ namespace nrd
             float sy = ml::Max(internalDispatchDesc.downsampleFactor == USE_MAX_DIMS ? m_ResolutionScalePrev.y : 0.0f, m_CommonSettings.resolutionScale[1]);
             uint16_t d = internalDispatchDesc.downsampleFactor == USE_MAX_DIMS ? 1 : internalDispatchDesc.downsampleFactor;
 
+            if (internalDispatchDesc.downsampleFactor == IGNORE_RS)
+            {
+                sx = 1.0f;
+                sy = 1.0f;
+                d = 1;
+            }
+
             uint16_t w = uint16_t( float(DivideUp(methodData.desc.fullResolutionWidth, d)) * sx + 0.5f );
             uint16_t h = uint16_t( float(DivideUp(methodData.desc.fullResolutionHeight, d)) * sy + 0.5f );
 
-            dispatchDesc.gridWidth = DivideUp(w, internalDispatchDesc.workgroupDimX);
-            dispatchDesc.gridHeight = DivideUp(h, internalDispatchDesc.workgroupDimY);
+            dispatchDesc.gridWidth = DivideUp(w, internalDispatchDesc.numThreads.width);
+            dispatchDesc.gridHeight = DivideUp(h, internalDispatchDesc.numThreads.height);
 
             // Store
             m_ActiveDispatches.push_back(dispatchDesc);
@@ -304,7 +334,7 @@ namespace nrd
         Vector<TextureDesc> m_PermanentPool;
         Vector<TextureDesc> m_TransientPool;
         Vector<Resource> m_Resources;
-        Vector<Resource> m_UniqueStorageResources;
+        Vector<ClearResource> m_ClearResources;
         Vector<PingPong> m_PingPongs;
         Vector<DescriptorRangeDesc> m_DescriptorRanges;
         Vector<PipelineDesc> m_Pipelines;
@@ -330,7 +360,6 @@ namespace nrd
         ml::float4 m_Rotator_PrePass = ml::float4::Zero();
         ml::float4 m_Rotator_Blur = ml::float4::Zero();
         ml::float4 m_Rotator_PostBlur = ml::float4::Zero();
-        ml::float4 m_Rotator_HistoryFix = ml::float4::Zero();
         ml::float4 m_Frustum = ml::float4::Zero();
         ml::float4 m_FrustumPrev = ml::float4::Zero();
         ml::float3 m_CameraDelta = ml::float3::Zero();
@@ -353,7 +382,6 @@ namespace nrd
         uint16_t m_TransientPoolOffset = 0;
         uint16_t m_PermanentPoolOffset = 0;
         float m_ProjectY = 0.0f; // TODO: NRD assumes that there are no checkerboard "tricks" in Y direction, so no a separate m_ProjectX
-        bool m_EnableValidation = false;
         bool m_IsFirstUse = true;
     };
 

@@ -1,12 +1,14 @@
-# NVIDIA Real-time Denoisers v3.7.0 (NRD)
+# NVIDIA Real-time Denoisers v3.9.1 (NRD)
+
+[![Build NRD SDK](https://github.com/NVIDIAGameWorks/RayTracingDenoiser/actions/workflows/build.yml/badge.svg)](https://github.com/NVIDIAGameWorks/RayTracingDenoiser/actions/workflows/build.yml)
+
+![Title](Images/Title.jpg)
 
 ## SAMPLE APP
 
 See *[NRD sample](https://github.com/NVIDIAGameWorks/NRDSample)* project.
 
-## QUICK START GUIDE
-
-### Intro
+## OVERVIEW
 
 *NVIDIA Real-Time Denoisers (NRD)* is a spatio-temporal API agnostic denoising library. The library has been designed to work with low rpp (ray per pixel) signals. *NRD* is a fast solution that slightly depends on input signals and environment conditions.
 
@@ -27,11 +29,13 @@ Supported signal types (modulated irradiance can be used instead of radiance):
   - Shadows from a local light source (omni, spot)
   - Shadows from multiple sources (experimental).
 
-*NRD* is distributed as a source as well with a “ready-to-use” library (if used in a precompiled form). It can be integrated into any DX12, VULKAN or DX11 engine using 2 methods:
+*NRD* is distributed as a source as well with a “ready-to-use” library (if used in a precompiled form). It can be integrated into any DX12, VULKAN or DX11 engine using two variants:
 1. Native implementation of the *NRD* API using engine capabilities
 2. Integration via an abstraction layer. In this case, the engine should expose native Graphics API pointers for certain types of objects. The integration layer, provided as a part of SDK, can be used to simplify this kind of integration.
 
-## Build instructions
+## BUILD INSTRUCTIONS
+
+### How to build?
 
 - Install [*Cmake*](https://cmake.org/download/) 3.15+
 - Install on
@@ -44,6 +48,31 @@ Supported signal types (modulated irradiance can be used instead of radiance):
 - Build (variant 2) - by running scripts:
     - Run `1-Deploy`
     - Run `2-Build`
+
+### How to update?
+
+- Clone latest with all dependencies
+- Run `4-Clean.bat`
+- Re-deploy and build
+
+### How to report IQ issues?
+
+NRD sample has *TESTS* section in the bottom of the UI, a new test can be added if needed. The following procedure is recommended:
+- Try to reproduce a problem in the *NRD sample* first
+  - if reproducible
+    - add a test (by pressing `Add` button)
+    - describe the issue and steps to reproduce on *GitHub*
+    - attach depending on the selected scene `.bin` file from the `Tests` folder
+  - if not
+    - verify the integration
+- If nothing helps
+  - describe the issue, attach a video and steps to reproduce
+
+### SDK package generation
+
+- Compile the solution (*Debug* / *Release* or both, depending on what you want to get in *NRD* package)
+- Run `3-Prepare NRD SDK`
+- Grab generated in the root directory `_NRD_SDK` and `_NRI_SDK` (if needed) folders and use them in your project
 
 ### CMake options
 
@@ -66,15 +95,9 @@ Supported signal types (modulated irradiance can be used instead of radiance):
 | Windows           | AMD64          | MSVC, Clang |
 | Linux             | AMD64, ARM64   | GCC, Clang  |
 
-### NRD SDK package generation
-
-- Compile the solution (*Debug* / *Release* or both, depending on what you want to get in *NRD* package)
-- Run `3-Prepare NRD SDK`
-- Grab generated in the root directory `_NRD_SDK` and `_NRI_SDK` (if needed) folders and use them in your project
-
 ## INTEGRATION VARIANTS
 
-### Integration Method 1: Black-box library (using the application-side Render Hardware Interface)
+### VARIANT 1: Black-box library (using the application-side Render Hardware Interface)
 
 RHI must have the ability to do the following:
 * Create shaders from precompiled binary blobs
@@ -83,7 +106,11 @@ RHI must have the ability to do the following:
 * Invoke a Dispatch call (no raster, no VS/PS)
 * Create 2D textures with SRV / UAV access
 
-### Integration Method 2: Black-box library (using native API pointers)
+### VARIANT 2: White-box library (using the application-side Render Hardware Interface)
+
+Logically it's close to the Method 1, but the integration takes place in the full source code (only the *NRD* project is needed). In this case *NRD* shaders are handled by the application shader compilation pipeline. The application should still use *NRD* via *NRD API* to preserve forward compatibility. This variant suits best for compilation on other platforms (consoles, ARM), unlocks *NRD* modification on the application side and increases portability.
+
+### VARIANT 3: Black-box library (using native API pointers)
 
 If Graphics API's native pointers are retrievable from the RHI, the standard *NRD integration* layer can be used to greatly simplify the integration. In this case, the application should only wrap up native pointers for the *Device*, *CommandList* and some input / output *Resources* into entities, compatible with an API abstraction layer (*[NRI](https://github.com/NVIDIAGameWorks/NRI)*), and all work with *NRD* library will be hidden inside the integration layer:
 
@@ -98,9 +125,9 @@ In rare cases, when the integration via the engine’s RHI is not possible and t
 The pseudo code below demonstrates how *NRD integration* and *NRI* can be used to wrap native Graphics API pointers into NRI objects to establish connection between the application and NRD:
 
 ```cpp
-//====================================================================================================================
+//=======================================================================================================
 // INITIALIZATION - DECLARATIONS
-//====================================================================================================================
+//=======================================================================================================
 
 #include "NRIDescs.hpp"
 #include "Extensions/NRIWrapperD3D12.h"
@@ -118,9 +145,9 @@ struct NriInterface
 {};
 NriInterface NRI;
 
-//====================================================================================================================
+//=======================================================================================================
 // INITIALIZATION - WRAP NATIVE DEVICE
-//====================================================================================================================
+//=======================================================================================================
 
 // Wrap the device
 nri::DeviceCreationD3D12Desc deviceDesc = {};
@@ -133,15 +160,19 @@ nri::Device* nriDevice = nullptr;
 nri::Result nriResult = nri::CreateDeviceFromD3D12Device(deviceDesc, nriDevice);
 
 // Get core functionality
-nriResult = nri::GetInterface(*nriDevice, NRI_INTERFACE(nri::CoreInterface), (nri::CoreInterface*)&NRI);
-nriResult = nri::GetInterface(*nriDevice, NRI_INTERFACE(nri::HelperInterface), (nri::HelperInterface*)&NRI);
+nriResult = nri::GetInterface(*nriDevice,
+  NRI_INTERFACE(nri::CoreInterface), (nri::CoreInterface*)&NRI);
+
+nriResult = nri::GetInterface(*nriDevice,
+  NRI_INTERFACE(nri::HelperInterface), (nri::HelperInterface*)&NRI);
 
 // Get appropriate "wrapper" extension (XXX - can be D3D11, D3D12 or VULKAN)
-nriResult = nri::GetInterface(*nriDevice, NRI_INTERFACE(nri::WrapperXXXInterface), (nri::WrapperXXXInterface*)&NRI);
+nriResult = nri::GetInterface(*nriDevice,
+  NRI_INTERFACE(nri::WrapperXXXInterface), (nri::WrapperXXXInterface*)&NRI);
 
-//====================================================================================================================
+//=======================================================================================================
 // INITIALIZATION - INITIALIZE NRD
-//====================================================================================================================
+//=======================================================================================================
 
 const nrd::MethodDesc methodDescs[] =
 {
@@ -155,9 +186,9 @@ denoiserCreationDesc.requestedMethodNum = methodNum;
 
 bool result = NRD.Initialize(*nriDevice, NRI, NRI, denoiserCreationDesc);
 
-//====================================================================================================================
+//=======================================================================================================
 // INITIALIZATION or RENDER - WRAP NATIVE POINTERS
-//====================================================================================================================
+//=======================================================================================================
 
 // Wrap the command buffer
 nri::CommandBufferD3D12Desc commandBufferDesc = {};
@@ -191,9 +222,9 @@ for (uint32_t i = 0; i < N; i++)
     entryDesc.nextLayout = ConvertResourceStateToLayout( myResource->GetCurrentState() );
 }
 
-//====================================================================================================================
+//=======================================================================================================
 // RENDER - DENOISE
-//====================================================================================================================
+//=======================================================================================================
 
 // Populate common settings
 //  - for the first time use defaults
@@ -222,11 +253,11 @@ bool enableDescriptorCaching = true;
 
 NRD.Denoise(frameIndex, *nriCommandBuffer, commonSettings, userPool, enableDescriptorCaching);
 
-// IMPORTANT: NRD integration binds own descriptor pool, don't forget to re-bind back your descriptor pool (heap)
+// IMPORTANT: NRD integration binds own descriptor pool, don't forget to re-bind back your pool (heap)
 
-//====================================================================================================================
+//=======================================================================================================
 // SHUTDOWN or RENDER - CLEANUP
-//====================================================================================================================
+//=======================================================================================================
 
 // Better do it only once on shutdown
 for (uint32_t i = 0; i < N; i++)
@@ -234,9 +265,9 @@ for (uint32_t i = 0; i < N; i++)
 
 NRI.DestroyCommandBuffer(*nriCommandBuffer);
 
-//====================================================================================================================
+//=======================================================================================================
 // SHUTDOWN - DESTROY
-//====================================================================================================================
+//=======================================================================================================
 
 // Release wrapped device
 NRI.DestroyDevice(*nriDevice);
@@ -245,20 +276,36 @@ NRI.DestroyDevice(*nriDevice);
 NRD.Destroy();
 ```
 
-### Integration Method 3: White-box library (using the application-side Render Hardware Interface)
+Shader part:
 
-Logically it's close to the Method 1, but the integration takes place in the full source code (only the *NRD* project is needed). In this case *NRD* shaders are handled by the application shader compilation pipeline. The application should still use *NRD* via *NRD API* to preserve forward compatibility. This method suits best for compilation on other platforms (consoles, ARM), unlocks *NRD* modification on the application side and increases portability.
+```cpp
+#if 1
+    #include "NRDEncoding.hlsli"
+#else
+    // Or define NRD encoding in Cmake and deliver macro definitions to shader compilation command line
+#endif
 
-NOTE: this method is WIP. It works, but in the future it will work better out of the box.
+#define NRD_HEADER_ONLY
+#include "NRD.hlsli"
 
-## NRD TERMINOLOGY
+// Call corresponding "front end" function to encode data for NRD (NRD.hlsli indicates which function
+// needs to be used for a specific input for a specific denoiser). For example:
+
+float4 nrdIn = RELAX_FrontEnd_PackRadianceAndHitDist(radiance, hitDistance);
+
+// Call corresponding "back end" function to decode data produced by NRD. For example:
+
+float4 nrdOut = RELAX_BackEnd_UnpackRadiance(nrdOutEncoded);
+```
+
+## API OVERVIEW
+
+### TERMINOLOGY
 
 * *Denoiser method (or method)* - a method for denoising of a particular signal (for example: `Method::DIFFUSE`)
 * *Denoiser* - a set of methods aggregated into a monolithic entity (the library is free to rearrange passes without dependencies)
 * *Resource* - an input, output or internal resource. Currently can only be a texture
 * *Texture pool (or pool)* - a texture pool that stores permanent or transient resources needed for denoising. Textures from the permanent pool are dedicated to *NRD* and can not be reused by the application (history buffers are stored here). Textures from the transient pool can be reused by the application right after denoising. *NRD* doesn’t allocate anything. *NRD* provides resource descriptions, but resource creations are done on the application side.
-
-## NRD API OVERVIEW
 
 ### API flow
 
@@ -269,48 +316,44 @@ NOTE: this method is WIP. It works, but in the future it will work better out of
 5. *GetComputeDispatches* - returns per-dispatch data (bound subresources with required state, constant buffer data)
 6. *DestroyDenoiser* - destroys a denoiser
 
-## HOW TO RUN DENOISING?
+### HOW TO RUN DENOISING?
 
 *NRD* doesn't make any graphics API calls. The application is supposed to invoke a set of compute *Dispatch* calls to actually denoise input signals. Please, refer to `NrdIntegration::Denoise()` and `NrdIntegration::Dispatch()` calls in `NRDIntegration.hpp` file as an example of an integration using low level RHI.
 
 *NRD* doesn’t have a "resize" functionality. On resolution change the old denoiser needs to be destroyed and a new one needs to be created with new parameters. But *NRD* supports dynamic resolution scaling via `CommonSettings::resolutionScale`.
 
-The following textures can be requested as inputs or outputs for a method. Required resources are specified near a method declaration inside the `Method` enum class. Also `NRD.hlsli` has a comment near each front-end or back-end function, clarifying which resources this function is for.
+Some textures can be requested as inputs or outputs for a method (see the next section). Required resources are specified near a method declaration inside the `Method` enum class. Also `NRD.hlsli` has a comment near each front-end or back-end function, clarifying which resources this function is for.
 
-### NRD INPUTS & OUTPUTS
+## INPUTS & OUTPUTS
 
 Commons inputs:
 
 * **IN\_MV** - non-jittered primary surface motion (`old = new + MV`)
 
-  Supported variants via `ComminSettings::isMotionVectorInWorldSpace`:
-  - 3D world space motion (recommended) - camera motion should not be included (it's already in the matrices). In other words, if there are no moving objects all motion vectors = 0. The `.w` channel is unused and can be used by the app
-  - 2D screen space motion - 2D motion doesn't provide information about movement along the view direction, it only allows to "get" the direction. *NRD* can introduce pixels with rejected history on dynamic objects in this case.
+  Modes:
+  - *3D world-space motion (recommended)* - camera motion should not be included (it's already in the matrices). In other words, if there are no moving objects, all motion vectors must be `0` even if the camera moves
+  - *2D screen-space motion* - 2D motion doesn't provide information about movement along the view direction, it only allows to get the direction. *NRD* can introduce pixels with rejected history on dynamic objects in this case
+  - *2.5D screen-space motion* - similar to the 2D screen-space motion, but `.z = viewZprev - viewZ`.
 
-  Motion vector scaling can be provided via `CommonSettings::motionVectorScale`.
+  Motion vector scaling can be provided via `CommonSettings::motionVectorScale`. *NRD* expectations:
+  - Use `ComminSettings::isMotionVectorInWorldSpace = true` for 3D world-space motion
+  - Use `ComminSettings::isMotionVectorInWorldSpace = false` and `ComminSettings::motionVectorScale[2] == 0` for 2D screen-space motion
+  - Use `ComminSettings::isMotionVectorInWorldSpace = false` and `ComminSettings::motionVectorScale[2] != 0` for 2.5D screen-space motion
 
-* **IN\_NORMAL\_ROUGHNESS** - primary surface normal in world space and *linear* roughness
+* **IN\_NORMAL\_ROUGHNESS** - primary surface world-space normal and *linear* roughness
 
-  Normal encoding can be controlled by the following macros located in `NRD.hlsli`:
-  - _NRD\_NORMAL\_ENCODING = NRD\_NORMAL\_ENCODING\_UNORM_ - `.xyz` - normal (decoding is `normalize( .xyz * 2 - 1 )`), `.w` - roughness
-  - _NRD\_NORMAL\_ENCODING = NRD\_NORMAL\_ENCODING\_OCT_ - `.xy` - normal (octahedron decoding). `.z` - roughness, `.w` - optional material ID (only 2 lower bits are used).
+  Normal and roughness encoding must be controlled via *Cmake* parameters `NRD_NORMAL_ENCODING` and `NRD_ROUGHNESS_ENCODING`. During project deployment optional `NRDEncoding.hlsli` file is generated, which can be included prior `NRD.hlsli` to make encoding macro definitions visible in shaders (if `NRD_NORMAL_ENCODING` and `NRD_ROUGHNESS_ENCODING` are not defined in another way by the application). Encoding settings can be known at runtime by accessing `GetLibraryDesc().normalEncoding` and `GetLibraryDesc().roghnessEncoding` respectively. `NormalEncoding` and `RoughnessEncoding` enums briefly describe encoding variants. It's recommended to use `NRD_FrontEnd_PackNormalAndRoughness` from `NRD.hlsli` to match decoding.
 
-  Roughness encoding can be controlled by the following macros located in `NRD.hlsli`:
-  - _NRD\_USE\_SQRT\_LINEAR\_ROUGHNESS_ = 0 - roughness decoding is `m = alpha = roughness ^ 2`
-  - _NRD\_USE\_SQRT\_LINEAR\_ROUGHNESS_ = 1 - roughness decoding is `m = alpha = roughness ^ 4`
-  - _NRD\_NORMAL\_ENCODING = NRD\_NORMAL\_ENCODING\_UNORM_ - `.xyz` - normal (decoding is `normalize( .xyz * 2 - 1 )`), `.w` - roughness
-  - _NRD\_NORMAL\_ENCODING = NRD\_NORMAL\_ENCODING\_OCT_ - `.xy` - normal (octahedron decoding). `.z` - roughness, `.w` - optional material ID (only 2 lower bits are used).
+  *NRD* computes local curvature using provided normals. Less accurate normals can lead to banding in curvature and local flatness. `RGBA8` normals is a good baseline, but `R10G10B10A10` oct-packed normals improve curvature calculations and specular tracking as the result.
 
-  *NRD* computes local curvature using provided normals. Less accurate normals can lead to banding in curvature and local flatness. RGBA8 normals is a good baseline, but R10G10B10A10 oct-packed normals improve curvature calculations and specular tracking in the result.
-
-  If `materialID` is provided, *NRD* diffuse and specular denoisers won't mix up surfaces with different material IDs.
+  If `materialID` is provided and supported by encoding, *NRD* diffuse and specular denoisers won't mix up surfaces with different material IDs.
 
 * **IN\_VIEWZ** - `.x` - view-space Z coordinate of the primary hit position (linearized g-buffer depth)
 
   Positive and negative values are supported. Z values in all pixels must be in the same space, matching space defined by matrices passed to NRD. If, for example, the protagonist's hands are rendered using special matrices, Z values should be computed as:
   - reconstruct world position using special matrices for "hands"
   - project on screen using matrices passed to NRD
-  - `.w` component is positive view Z (or just transform world space position to main view space and take `.z` component)
+  - `.w` component is positive view Z (or just transform world-space position to main view space and take `.z` component)
 
 **IMPORTANT**: All textures should be *NaN* free at each pixel, even at pixels outside of denoising range.
 
@@ -320,10 +363,12 @@ See `NRDDescs.h` for more details and descriptions of other inputs and outputs.
 
 NRD sample is a good start to familiarize yourself with input requirements and best practices, but main requirements can be summarized to:
 
+- Since *NRD* denoisers accumulate signals for a limited number of frames, the input signal must converge *reasonably* well for this number of frames. `REFERENCE` denoiser can be used to estimate temporal signal quality
+- Since *NRD* denoisers process signals spatially, high-energy fireflies in the input signal should be avoided. Most of them can be removed by enabling anti-firefly filter in *NRD*, but it will only work if the "background" signal is confident. The worst case is having a single pixel with high energy divided by a very small PDF to represent the lack of energy in neighboring non-representative (black) pixels
 - Signal for *NRD* must be separated into diffuse and specular at primary hit
 - `hitT` must not include primary hit distance
 - Do not pass *sum of lengths of all segments* as `hitT`. A solid baseline is to use hit distance for the 1st bounce only, it works well for diffuse and specular signals
-  - *NRD sample* uses more complex method for accumulating `hitT` along the path, which takes into account energy dissipation due to lobe spread and curvature at the current hit
+  - *NRD sample* uses more complex approach for accumulating `hitT` along the path, which takes into account energy dissipation due to lobe spread and curvature at the current hit
 - Noise in provided hit distances must follow a diffuse or specular lobe. It implies that `hitT` for `roughness = 0` must be clean (if probabilistic sampling is not in use)
 - In case of probabilistic diffuse / specular selection at the primary hit, provided `hitT` must follow the following rules:
   - Should not be divided by `PDF`
@@ -332,12 +377,49 @@ NRD sample is a good start to familiarize yourself with input requirements and b
   - Pre-pass must be enabled (i.e. `diffusePrepassBlurRadius` and `specularPrepassBlurRadius` must be set to 20-70 pixels) to compensate entropy increase, since radiance in valid samples is divided by probability to compensate 0 values in some neighbors
 - Probabilistic sampling for 2nd+ bounces is absolutely acceptable
 
+## INTERACTION WITH PRIMARY SURFACE REPLACEMENTS
+
+[*Primary Surface Replacement (PSR)*](https://developer.nvidia.com/blog/rendering-perfect-reflections-and-refractions-in-path-traced-games/) can be used with *NRD*. In this case `IN_MV`, `IN_NORMAL_ROUGHNESS` and `IN_VIEWZ` must have data for secondary hits (not primary hits). In case of PSR *NRD* disocclusion logic doesn't take curvature at primary hit into account, because data for primary hits is replaced. This can lead to more intense disocclusions on bumpy surfaces due to significant ray divergence. To mitigate this problem 2x-10x larger `disocclusionThreshold` can be used. This is an applicable solution if the denoiser is used to denoise surfaces with PSR only (glass only, for example). In a general case, when PSR and normal surfaces are mixed on the screen, higher disocclusion thresholds are needed only for pixels with PSR. This can be achieved by using `IN_DISOCCLUSION_THRESHOLD_MIX` input to smoothly mix baseline `disocclusionThreshold` into bigger `disocclusionThresholdAlternate` from `CommonSettings`. Most likely the increased disocclusion threshold is needed only for pixels with normal details at primary hits (local curvature is not zero).
+
+## VALIDATION LAYER
+
+![Validation](Images/Validation.png)
+
+If `CommonSettings::enableValidation = true` *REBLUR* & *RELAX* denoisers render debug information into `OUT_VALIDATION` output. Alpha channel contains layer transparency to allow easy mix with the final image on the application side. Currently the following viewport layout is used on the screen:
+
+| 0 | 1 | 2 | 3 |
+|---|---|---|---|
+| 4 | 5 | 6 | 7 |
+| 8 | 9 | 10| 11|
+| 12| 13| 14| 15|
+
+where:
+
+- Viewport 0 - world-space normals
+- Viewport 1 - linear roughness
+- Viewport 2 - linear viewZ
+  - green = `+`
+  - blue = `-`
+  - red = `out of denoising range`
+- Viewport 3 - difference between MVs, coming from `IN_MV`, and expected MVs, assuming that the scene is static
+  - blue = `out of screen`
+  - pixels with moving objects have non-0 values
+- Viewport 4 - world-space grid & camera jitter:
+  - 1 cube = `1 unit`
+  - the square in the bottom-right corner represents a pixel with accumulated samples
+  - the red boundary of the square marks jittering outside of the pixel area
+
+*REBLUR* specific:
+- Viewport 7 - amount of virtual history
+- Viewport 8 - number of accumulated frames for diffuse signal (red = `history reset`)
+- Viewport 11 - number of accumulated frames for specular signal (red = `history reset`)
+- Viewport 12 - input normalized `hitT` for diffuse signal (ambient occlusion, AO)
+- Viewport 15 - input normalized `hitT` for specular signal (specular occlusion, SO)
+
 ## MEMORY REQUIREMENTS
 
 The *Persistent* column (matches *NRD Permanent pool*) indicates how much of the *Working set* is required to be left intact for subsequent frames of the application. This memory stores the history resources consumed by NRD. The *Aliasable* column (matches *NRD Transient pool*) shows how much of the *Working set* may be aliased by textures or other resources used by the application outside of the operating boundaries of NRD.
 
-Creating borderless window (2560, 1440)
-Loading...
 | Resolution |                             Denoiser | Working set (Mb) |  Persistent (Mb) |   Aliasable (Mb) |
 |------------|--------------------------------------|------------------|------------------|------------------|
 |      1080p |                       REBLUR_DIFFUSE |            88.75 |            46.50 |            42.25 |
@@ -399,7 +481,7 @@ Denoising is not a panacea or miracle. Denoising works best with ray tracing res
 
 **[NRD]** Read all comments in `NRDDescs.h`, `NRDSettings.h` and `NRD.hlsli`.
 
-**[NRD]** If you are unsure of which parameters to use - use defaults via `{}` construction. It will help to improve compatibility with future versions.
+**[NRD]** If you are unsure of which parameters to use - use defaults via `{}` construction. It helps to improve compatibility with future versions and offers optimal IQ, because default settings are always adjusted by recent algorithmic changes.
 
 **[NRD]** *NRD* requires linear roughness and world-space normals. See `NRD.hlsli` for more details and supported customizations.
 
@@ -527,16 +609,3 @@ Is this a biased solution? If spatial filtering is off - no, because we just reo
 - if shadows overlap, a separate pass is needed to analyze noisy input and classify pixels as *umbra* - *penumbra* (and optionally *empty space*). Raster shadow maps can be used for this if available
 - it is not recommended to mix 1 cd and 100000 cd lights, since FP32 texture will be needed for a weighted sum.
 In this case, it's better to process the sun and other bright light sources separately.
-
-## HOW TO REPORT ISSUES
-
-NRD sample has *TESTS* section in the bottom of the UI, a new test can be added if needed. The following procedure is recommended:
-- Try to reproduce a problem in the *NRD sample* first
-  - if reproducible
-    - add a test (by pressing `Add` button)
-    - describe the issue and steps to reproduce
-    - attach depending on the selected scene `.bin` file from the `Tests` folder
-  - if not
-    - verify the integration
-- If nothing helps
-  - describe the issue, attach a video and steps to reproduce

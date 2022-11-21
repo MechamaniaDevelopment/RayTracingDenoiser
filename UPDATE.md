@@ -102,3 +102,22 @@ This guide has been designed to simplify migration to a newer version.
   - added `normalEncoding` and `roughnessEncoding` to `LibraryDesc`
 - *REBLUR*:
   - Removed `enableAdvancedPrepass`
+
+## To v3.8
+
+Introduced optional `NRDEncoding.hlsli` file which can be included prior `NRD.hlsli` to properly setup NRD encoding for usage outside of NRD project, if encoding variants are not set via Cmake parameters. Also introduced optional `IN_DISOCCLUSION_THRESHOLD_MIX` which allows to smoothly mix `CommonSettings::disocclusionThreshold` (0) into `CommonSettings::disocclusionThresholdAlternate` (1).
+
+- *API*:
+  - Exposed `IN_DISOCCLUSION_THRESHOLD_MIX`, `CommonSettings::disocclusionThresholdAlternate` & `CommonSettings::isDisocclusionThresholdMixAvailable`
+- *REBLUR*:
+  - Removed `minConvergedStateBaseRadiusScale`
+  - Removed `maxAdaptiveRadiusScale`
+
+## To v3.9
+
+Introduced optional `OUT_VALIDATION` output, which contains debug visualization layer if `CommonSettings::enableValidation = true`.
+
+- *API*:
+  - Removed `DenoiserCreationDesc::enableValidation`
+  - Exposed `CommonSettings::enableValidation`
+  - Extened `CommonSettings::motionVectorScale` to 3 floats

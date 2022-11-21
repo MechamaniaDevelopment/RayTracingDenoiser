@@ -26,18 +26,19 @@ NRD_SAMPLER_END
         NRD_CONSTANT( uint, gDiffCheckerboard )
         NRD_CONSTANT( uint, gSpecCheckerboard )
         NRD_CONSTANT( float, gDisocclusionDepthThreshold )
+        NRD_CONSTANT( float, gDisocclusionDepthThresholdAlternate )
         NRD_CONSTANT( float, gRoughnessFraction )
         NRD_CONSTANT( float, gSpecularVarianceBoost )
         NRD_CONSTANT( uint, gVirtualHistoryClampingEnabled )
         NRD_CONSTANT( uint, gSkipReprojectionTestWithoutMotion )
-        NRD_CONSTANT( uint, gResetHistory )
         NRD_CONSTANT( uint, gUseConfidenceInputs )
+        NRD_CONSTANT( uint, gUseDisocclusionThresholdMix )
     NRD_CONSTANTS_END
 
     NRD_INPUT_TEXTURE_START
         NRD_INPUT_TEXTURE( Texture2D<float4>, gSpecularIllumination, t, 0 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gDiffuseIllumination, t, 1 )
-        NRD_INPUT_TEXTURE( Texture2D<float4>, gMotion, t, 2 )
+        NRD_INPUT_TEXTURE( Texture2D<float3>, gMv, t, 2 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gNormalRoughness, t, 3 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gViewZ, t, 4 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gPrevSpecularIlluminationResponsive, t, 5 )
@@ -51,6 +52,7 @@ NRD_SAMPLER_END
         NRD_INPUT_TEXTURE( Texture2D<float>, gPrevMaterialID, t, 13 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gSpecConfidence, t, 14 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gDiffConfidence, t, 15 )
+        NRD_INPUT_TEXTURE( Texture2D<float>, gDisocclusionThresholdMix, t, 16)
     NRD_INPUT_TEXTURE_END
 
     NRD_OUTPUT_TEXTURE_START
@@ -71,14 +73,15 @@ NRD_SAMPLER_END
         NRD_CONSTANT( float, gDiffuseMaxFastAccumulatedFrameNum )
         NRD_CONSTANT( uint, gDiffCheckerboard )
         NRD_CONSTANT( float, gDisocclusionDepthThreshold )
+        NRD_CONSTANT( float, gDisocclusionDepthThresholdAlternate )
         NRD_CONSTANT( uint, gSkipReprojectionTestWithoutMotion )
-        NRD_CONSTANT( uint, gResetHistory )
         NRD_CONSTANT( uint, gUseConfidenceInputs )
+        NRD_CONSTANT( uint, gUseDisocclusionThresholdMix )
     NRD_CONSTANTS_END
 
     NRD_INPUT_TEXTURE_START
         NRD_INPUT_TEXTURE( Texture2D<float4>, gDiffuseIllumination, t, 0 )
-        NRD_INPUT_TEXTURE( Texture2D<float4>, gMotion, t, 1 )
+        NRD_INPUT_TEXTURE( Texture2D<float3>, gMv, t, 1 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gNormalRoughness, t, 2 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gViewZ, t, 3 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gPrevDiffuseIlluminationResponsive, t, 4 )
@@ -88,6 +91,7 @@ NRD_SAMPLER_END
         NRD_INPUT_TEXTURE( Texture2D<float>, gPrevHistoryLength, t, 8 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gPrevMaterialID, t, 9 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gDiffConfidence, t, 10 )
+        NRD_INPUT_TEXTURE( Texture2D<float>, gDisocclusionThresholdMix, t, 11)
     NRD_INPUT_TEXTURE_END
 
     NRD_OUTPUT_TEXTURE_START
@@ -104,17 +108,18 @@ NRD_SAMPLER_END
         NRD_CONSTANT( float, gSpecularMaxFastAccumulatedFrameNum )
         NRD_CONSTANT( uint, gSpecCheckerboard )
         NRD_CONSTANT( float, gDisocclusionDepthThreshold )
+        NRD_CONSTANT( float, gDisocclusionDepthThresholdAlternate )
         NRD_CONSTANT( float, gRoughnessFraction )
         NRD_CONSTANT( float, gSpecularVarianceBoost )
         NRD_CONSTANT( uint, gVirtualHistoryClampingEnabled )
         NRD_CONSTANT( uint, gSkipReprojectionTestWithoutMotion )
-        NRD_CONSTANT( uint, gResetHistory )
         NRD_CONSTANT( uint, gUseConfidenceInputs )
+        NRD_CONSTANT( uint, gUseDisocclusionThresholdMix )
     NRD_CONSTANTS_END
 
     NRD_INPUT_TEXTURE_START
         NRD_INPUT_TEXTURE( Texture2D<float4>, gSpecularIllumination, t, 0 )
-        NRD_INPUT_TEXTURE( Texture2D<float4>, gMotion, t, 1 )
+        NRD_INPUT_TEXTURE( Texture2D<float3>, gMv, t, 1 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gNormalRoughness, t, 2 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gViewZ, t, 3 )
         NRD_INPUT_TEXTURE( Texture2D<float4>, gPrevSpecularIlluminationResponsive, t, 4 )
@@ -125,6 +130,7 @@ NRD_SAMPLER_END
         NRD_INPUT_TEXTURE( Texture2D<float>, gPrevHistoryLength, t, 9 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gPrevMaterialID, t, 10 )
         NRD_INPUT_TEXTURE( Texture2D<float>, gSpecConfidence, t, 11 )
+        NRD_INPUT_TEXTURE( Texture2D<float>, gDisocclusionThresholdMix, t, 12)
     NRD_INPUT_TEXTURE_END
 
     NRD_OUTPUT_TEXTURE_START
@@ -138,5 +144,6 @@ NRD_SAMPLER_END
 #endif
 
 // Macro magic
-#define NRD_CTA_8X8
+#define GROUP_X 8
+#define GROUP_Y 8
 #define NRD_USE_BORDER_2

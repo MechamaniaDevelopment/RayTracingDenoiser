@@ -31,6 +31,8 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float4, gPrevFrustumUp ) \
     NRD_CONSTANT( float4, gPrevFrustumForward ) \
     NRD_CONSTANT( float4, gPrevCameraPosition ) \
+    NRD_CONSTANT( float3, gMvScale ) \
+    NRD_CONSTANT( float, gDebug ) \
     NRD_CONSTANT( float2, gResolutionScale) \
     NRD_CONSTANT( uint2, gRectOrigin ) \
     NRD_CONSTANT( float2, gRectOffset ) \
@@ -38,9 +40,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( float2, gInvResourceSize ) \
     NRD_CONSTANT( float2, gInvRectSize ) \
     NRD_CONSTANT( float2, gRectSizePrev ) \
-    NRD_CONSTANT( float2, gMotionVectorScale ) \
     NRD_CONSTANT( uint, gIsWorldSpaceMotionEnabled ) \
-    NRD_CONSTANT( float, gDebug ) \
     NRD_CONSTANT( float, gOrthoMode ) \
     NRD_CONSTANT( float, gUnproject ) \
     NRD_CONSTANT( uint, gFrameIndex ) \
@@ -51,6 +51,12 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( uint, gDiffMaterialMask ) \
     NRD_CONSTANT( uint, gSpecMaterialMask ) \
     NRD_CONSTANT( uint, gUseWorldPrevToWorld ) \
+    NRD_CONSTANT( uint, gResetHistory ) \
+    NRD_CONSTANT( uint, unused2 ) \
+    NRD_CONSTANT( uint, unused3 ) \
+    \
+    NRD_CONSTANT(float, gPad0) \
+    NRD_CONSTANT(float, gPad1) \
     \
     NRD_CONSTANT(uint, gEnablePDW) \
     NRD_CONSTANT(float, gApplyPDW_b) \
@@ -70,9 +76,9 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT(float2, gRemovePDW_VW) \
     NRD_CONSTANT(float, gRemovePDW_R) \
     \
-    NRD_CONSTANT(float, gPad0) \
-    NRD_CONSTANT(float, gPad1) \
     NRD_CONSTANT(float, gPad2) \
+    NRD_CONSTANT(float, gPad3) \
+    NRD_CONSTANT(float, gPad4) \
     \
     NRD_CONSTANT(uint, gPrevEnablePDW) \
     NRD_CONSTANT(float, gPrevApplyPDW_b) \
@@ -92,9 +98,9 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT(float2, gPrevRemovePDW_VW) \
     NRD_CONSTANT(float, gPrevRemovePDW_R) \
     \
-    NRD_CONSTANT(float, gPad3) \
-    NRD_CONSTANT(float, gPad4) \
     NRD_CONSTANT(float, gPad5) \
+    NRD_CONSTANT(float, gPad6) \
+    NRD_CONSTANT(float, gPad7) \
 
 #if( !defined RELAX_DIFFUSE && !defined RELAX_SPECULAR )
     #define RELAX_DIFFUSE
