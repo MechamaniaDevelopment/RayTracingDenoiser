@@ -9,7 +9,7 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
 */
 constexpr uint32_t RELAX_MAX_ATROUS_PASS_NUM = 8;
 
-#define RELAX_SET_SHARED_CONSTANTS SetSharedConstants(5, 8, 7, 16 + 48)
+#define RELAX_SET_SHARED_CONSTANTS SetSharedConstants(5, 8, 7, 14 + 48)
 
 #define RELAX_ADD_VALIDATION_DISPATCH \
     PushPass("Validation"); \
@@ -120,67 +120,64 @@ void nrd::DenoiserImpl::AddSharedConstants_Relax(const MethodData& methodData, C
     AddUint(data, 0);
     AddUint(data, 0);
 
-    // Align to 16
-    AddFloat(data, 0.0f); // Pad 0
-    AddFloat(data, 0.0f); // Pad 1
-
-
     // PDW 
     AddUint(data, methodData.settings.diffuseSpecularRelax.enablePDW);
-
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_b);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_bb);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_am2inv);
+
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_am4);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_A1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_B1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_B2);
+
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_V);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_W);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.applyPDW_R);
-
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_b);
+
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_bb);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_am2inv);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_am4);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_A1);
+
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_B1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_B2);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_V);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_W);
+    
     AddFloat(data, methodData.settings.diffuseSpecularRelax.removePDW_R);
-
-    // PDW Current Frame adds 21, align to 24
     AddFloat(data, 0.0f); // Pad2
     AddFloat(data, 0.0f); // Pad3
     AddFloat(data, 0.0f); // Pad4
 
     // PDW Prev Frame
     AddUint(data, methodData.settings.diffuseSpecularRelax.prevEnablePDW);
-
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_b);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_bb);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_am2inv);
+
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_am4);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_A1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_B1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_B2);
+    
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_V);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_W);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevApplyPDW_R);
-
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_b);
+    
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_bb);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_am2inv);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_am4);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_A1);
+    
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_B1);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_B2);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_V);
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_W);
+    
     AddFloat(data, methodData.settings.diffuseSpecularRelax.prevRemovePDW_R);
-
-    // PDW previous frame adds 21, align to 24
     AddFloat(data, 0.0f); // Pad5
     AddFloat(data, 0.0f); // Pad6
     AddFloat(data, 0.0f); // Pad7

@@ -55,9 +55,6 @@ license agreement from NVIDIA CORPORATION is strictly prohibited.
     NRD_CONSTANT( uint, unused2 ) \
     NRD_CONSTANT( uint, unused3 ) \
     \
-    NRD_CONSTANT(float, gPad0) \
-    NRD_CONSTANT(float, gPad1) \
-    \
     NRD_CONSTANT(uint, gEnablePDW) \
     NRD_CONSTANT(float, gApplyPDW_b) \
     NRD_CONSTANT(float, gApplyPDW_bb) \
