@@ -27,6 +27,8 @@ CREDITS:
 #include <cstdint>
 #include <cstddef>
 
+#define NRD_PDW_CORRECTION // Indicate that this version has PDW correction
+
 #define NRD_VERSION_MAJOR 3
 #define NRD_VERSION_MINOR 9
 #define NRD_VERSION_BUILD 1
